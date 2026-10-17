@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/bdae8647-4a30-49c2-8fab-cb40221969b4
 Run this in PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/R44VC0RP/opencode-voice/main/setup.ps1 | iex
+irm https://raw.githubusercontent.com/AvernicAI/opencode-voice/main/setup.ps1 | iex
 ```
 
 ### macOS / Linux
