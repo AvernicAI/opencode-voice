@@ -35,11 +35,16 @@ Key gotchas:
 
 Single setup script: `setup.ps1` (Windows). `setup.sh` was removed with macOS/Linux support.
 - PowerShell: use `$ErrorActionPreference = 'Stop'` to fail fast
-- Check `ConvertFrom-Json` errors before attempting JSON manipulation - provide manual fallback
+- Never round-trip the config through `ConvertFrom-Json` - the OpenCode config is JSONC (comments + trailing commas) and a round-trip rejects comments and rewrites formatting. `setup.ps1` makes surgical text edits instead (helpers between the `# >>> BEGIN CONFIG HELPERS` / `# <<< END CONFIG HELPERS` markers, covered by `tests/setup-config-tests.ps1`; run it under Windows PowerShell 5.1, the `irm | iex` host, and keep the helpers 5.1-compatible)
+- Target-file order mirrors OpenCode itself: prefer `opencode.jsonc`, fall back to legacy `opencode.json`, create `opencode.jsonc` when neither exists
+- Plugin entries go in the V2 `plugins` array; the legacy V1 `plugin` field is only used as a fallback when it is the sole key present, and only top-level arrays are edited (nested keys with the same name are ignored)
+- `opencode plugin add` cannot register local plugins ("Plugin target must be an npm registry or Git package specifier") - registration must be a direct config edit
+- Skip registration when the URL is already present, and never add a second entry when another `opencode-voice` path is already registered (the plugin would load twice)
+- Existing checkouts at custom paths (e.g. `B:\opencode-voice`) can be targeted with `$env:OPENCODE_VOICE_DIR` before running the `irm | iex` one-liner
 - Use `New-Item -ItemType Directory -Force` for the secrets dir - may not exist on fresh OpenCode installs
 - API key file relies on default user-scoped ACLs (no `chmod` equivalent needed)
 - Git operations: use `--quiet` flag to reduce noise in setup scripts
-- Plugin path in opencode.json is a file URL; on Windows use forward slashes: `file:///C:/Users/...`
+- Plugin path in the config is a file URL; on Windows use forward slashes: `file:///C:/Users/...`
 
 ## File Changes That Must Happen Together
 

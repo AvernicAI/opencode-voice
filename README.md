@@ -22,10 +22,17 @@ irm https://raw.githubusercontent.com/AvernicAI/opencode-voice/main/setup.ps1 | 
 ```
 
 The setup script will:
-- Clone the plugin to `%USERPROFILE%\dev\opencode-voice`
+- Clone the plugin to `%USERPROFILE%\dev\opencode-voice` (or registers an existing checkout - see below)
 - Install dependencies
 - Prompt for your ElevenLabs API key
-- Update your OpenCode config
+- Register the plugin in your OpenCode config (`opencode.jsonc`, or the legacy `opencode.json` if that is all you have)
+
+Already have the repo somewhere else (another folder or drive)? Point the script at it first:
+
+```powershell
+$env:OPENCODE_VOICE_DIR = 'B:\opencode-voice'
+irm https://raw.githubusercontent.com/AvernicAI/opencode-voice/main/setup.ps1 | iex
+```
 
 Then restart OpenCode!
 
@@ -49,11 +56,11 @@ mkdir $HOME\.config\opencode\secrets
 "YOUR_API_KEY" | Set-Content $HOME\.config\opencode\secrets\elevenlabs-key -NoNewline
 ```
 
-3. Register the plugin in your OpenCode config (`~/.config/opencode/opencode.json`):
+3. Register the plugin in your OpenCode config (`~/.config/opencode/opencode.jsonc` - the legacy `opencode.json` works too). Add the `plugins` array (V2 name; the old `plugin` field still works as a fallback):
 
 ```json
 {
-  "plugin": [
+  "plugins": [
     "file:///C:/Users/YOUR_USERNAME/dev/opencode-voice"
   ]
 }
