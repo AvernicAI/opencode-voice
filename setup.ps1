@@ -10,12 +10,12 @@
       - Registers the plugin in your OpenCode config
 
 .EXAMPLE
-    irm https://raw.githubusercontent.com/R44VC0RP/opencode-voice/main/setup.ps1 | iex
+    irm https://raw.githubusercontent.com/AvernicAI/opencode-voice/main/setup.ps1 | iex
 #>
 
 $ErrorActionPreference = 'Stop'
 
-$RepoUrl    = 'https://github.com/R44VC0RP/opencode-voice.git'
+$RepoUrl    = 'https://github.com/AvernicAI/opencode-voice.git'
 $InstallDir = Join-Path $HOME 'dev\opencode-voice'
 $SecretsDir = Join-Path $HOME '.config\opencode\secrets'
 $KeyPath    = Join-Path $SecretsDir 'elevenlabs-key'

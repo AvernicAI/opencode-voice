@@ -1,6 +1,6 @@
 # opencode-voice
 
-An [OpenCode](https://opencode.ai) plugin that adds text-to-speech capabilities using [ElevenLabs](https://elevenlabs.io) v3 with expressive audio tags.
+A **Windows-only** [OpenCode](https://opencode.ai) plugin that adds text-to-speech capabilities using [ElevenLabs](https://elevenlabs.io) v3 with expressive audio tags.
 
 [![Demo Video](https://img.shields.io/badge/Demo-Watch%20on%20X-black?style=for-the-badge&logo=x)](https://x.com/ryanvogel/status/2017625592217145734)
 
@@ -11,13 +11,9 @@ https://github.com/user-attachments/assets/bdae8647-4a30-49c2-8fab-cb40221969b4
 - **ElevenLabs v3** - Uses the most expressive TTS model with audio tag support
 - **Audio Tags** - Control emotions, delivery, reactions, accents, and sound effects inline
 - **Non-blocking** - Audio plays in background, control returns immediately
-- **Windows Native** - Uses the built-in Windows Media Player COM object - no extra dependencies
-- **macOS Support** - Uses `afplay` for reliable audio playback
-- **Linux Support** - Uses `ffplay` or `paplay` when available
+- **Windows Native** - Uses the built-in WPF `MediaPlayer` with the legacy Windows Media Player COM object (`WMPlayer.OCX`) as a fallback - no extra dependencies
 
 ## Quick Install
-
-### Windows
 
 Run this in PowerShell:
 
@@ -25,14 +21,8 @@ Run this in PowerShell:
 irm https://raw.githubusercontent.com/AvernicAI/opencode-voice/main/setup.ps1 | iex
 ```
 
-### macOS / Linux
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/R44VC0RP/opencode-voice/main/setup.sh | bash
-```
-
 The setup script will:
-- Clone the plugin to `~/dev/opencode-voice` (`%USERPROFILE%\dev\opencode-voice` on Windows)
+- Clone the plugin to `%USERPROFILE%\dev\opencode-voice`
 - Install dependencies
 - Prompt for your ElevenLabs API key
 - Update your OpenCode config
@@ -44,52 +34,27 @@ Then restart OpenCode!
 <details>
 <summary>Click to expand manual steps</summary>
 
-1. Clone or download this plugin:
+1. Clone or download this plugin (PowerShell):
 
-Windows (PowerShell):
 ```powershell
-git clone https://github.com/R44VC0RP/opencode-voice.git $HOME\dev\opencode-voice
+git clone https://github.com/AvernicAI/opencode-voice.git $HOME\dev\opencode-voice
 cd $HOME\dev\opencode-voice
 bun install
 ```
 
-macOS / Linux:
-```bash
-git clone https://github.com/R44VC0RP/opencode-voice.git ~/dev/opencode-voice
-cd ~/dev/opencode-voice
-bun install
-```
+2. Add your ElevenLabs API key (PowerShell):
 
-2. Add your ElevenLabs API key:
-
-Windows (PowerShell):
 ```powershell
 mkdir $HOME\.config\opencode\secrets
 "YOUR_API_KEY" | Set-Content $HOME\.config\opencode\secrets\elevenlabs-key -NoNewline
 ```
 
-macOS / Linux:
-```bash
-mkdir -p ~/.config/opencode/secrets
-echo "YOUR_API_KEY" > ~/.config/opencode/secrets/elevenlabs-key
-```
-
 3. Register the plugin in your OpenCode config (`~/.config/opencode/opencode.json`):
 
-Windows:
 ```json
 {
   "plugin": [
     "file:///C:/Users/YOUR_USERNAME/dev/opencode-voice"
-  ]
-}
-```
-
-macOS / Linux:
-```json
-{
-  "plugin": [
-    "file:///Users/YOUR_USERNAME/dev/opencode-voice"
   ]
 }
 ```
@@ -159,21 +124,21 @@ The plugin reads the ElevenLabs API key from:
 ~/.config/opencode/secrets/elevenlabs-key
 ```
 
-This is the same location on Windows, macOS, and Linux.
+This is the same location OpenCode uses for its other secrets on Windows.
 
 ## How Playback Works
 
 | Platform | Player | Dependencies |
 |----------|--------|--------------|
 | **Windows** | Hidden PowerShell process using the WPF `MediaPlayer` (ships with .NET Framework), falling back to the legacy Windows Media Player COM object (`WMPlayer.OCX`) | None - built into Windows 10/11 |
-| **macOS** | `afplay` | None - built into macOS |
-| **Linux** | `ffplay` (ffmpeg) or `paplay` (PulseAudio), tried in order | One of the two |
 
 The player runs as a background process, so OpenCode is never blocked while audio plays. The temporary MP3 is deleted automatically when playback finishes.
 
+Calling `speak` on a non-Windows host fails fast with a clear error before any API call is made.
+
 ## Requirements
 
-- Windows 10/11 (uses the built-in WPF `MediaPlayer`), macOS, or Linux with `ffplay`/`paplay`
+- Windows 10/11 (uses the built-in WPF `MediaPlayer`, with `WMPlayer.OCX` as a fallback)
 - [Bun](https://bun.sh) runtime
 - ElevenLabs API key with v3 access
 

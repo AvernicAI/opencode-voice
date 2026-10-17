@@ -1,7 +1,7 @@
 {
   "name": "opencode-voice",
   "version": "0.2.0",
-  "description": "OpenCode plugin for text-to-speech using ElevenLabs v3 with expressive audio tags (Windows, macOS, Linux)",
+  "description": "OpenCode plugin for text-to-speech using ElevenLabs v3 with expressive audio tags (Windows)",
   "module": "index.ts",
   "type": "module",
   "keywords": [
@@ -13,7 +13,7 @@
     "voice",
     "audio",
     "windows",
-    "macos"
+    "powershell"
   ],
   "files": [
     "index.ts",

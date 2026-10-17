@@ -16,7 +16,7 @@ const MODEL_ID = "eleven_v3";
 
 /**
  * Path to the ElevenLabs API key secret file.
- * Works cross-platform (~/.config/opencode is used on Windows, macOS, and Linux).
+ * (~/.config/opencode is the config location OpenCode uses on Windows too).
  */
 const API_KEY_PATH = join(
   homedir(),
@@ -45,6 +45,20 @@ function loadApiKey(): string {
  */
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * This plugin only supports Windows - playback is implemented with the
+ * built-in Windows media stack (WPF MediaPlayer + WMPlayer.OCX fallback).
+ */
+export function assertWindows(): void {
+  if (process.platform !== "win32") {
+    throw new Error(
+      "opencode-voice is a Windows-only plugin: audio playback requires " +
+        "PowerShell with the WPF MediaPlayer (PresentationCore). " +
+        `Detected platform: ${process.platform}`
+    );
+  }
 }
 
 /**
@@ -138,7 +152,8 @@ if (-not $played) {
   }
 }
 
-# Release the player and always delete the temp file
+# Release the player and always delete the temp file (retry: media handles are
+# released asynchronously, so the file can be locked for a moment)
 if ($null -ne $player) {
   if ($isCom) {
     try { $player.controls.stop() } catch { }
@@ -147,73 +162,55 @@ if ($null -ne $player) {
   } else {
     try { $player.Close() } catch { }
   }
+  $player = $null
 }
-Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+for ($i = 0; $i -lt 10 -and (Test-Path -LiteralPath $path); $i++) {
+  Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+  if (Test-Path -LiteralPath $path) { Start-Sleep -Milliseconds 200 }
+}
 if (-not $played) { exit 1 }
 `.trim();
 }
 
 /**
- * Build the list of playback commands to try, in order, for the current
- * platform. The first command that exists on the system wins; the rest are
- * fallbacks.
+ * Build the playback command for the current platform.
+ *
+ * Windows-only: a hidden PowerShell process plays the file using the built-in
+ * engines (WPF MediaPlayer, falling back to the legacy WMP COM object).
  */
 export function buildPlaybackCandidates(
   filePath: string,
   volume: number
 ): Array<{ command: string; args: string[] }> {
-  if (process.platform === "win32") {
-    const script = buildWindowsPlaybackScript(filePath, volume);
-    // Base64 (UTF-16LE) encoded script avoids all path/quoting issues
-    const encodedScript = Buffer.from(script, "utf16le").toString("base64");
+  assertWindows();
 
-    return [
-      {
-        command: "powershell.exe",
-        args: [
-          "-NoProfile",
-          "-NonInteractive",
-          "-WindowStyle",
-          "Hidden",
-          "-EncodedCommand",
-          encodedScript,
-        ],
-      },
-    ];
-  }
+  const script = buildWindowsPlaybackScript(filePath, volume);
+  // Base64 (UTF-16LE) encoded script avoids all path/quoting issues
+  const encodedScript = Buffer.from(script, "utf16le").toString("base64");
 
-  if (process.platform === "darwin") {
-    return [{ command: "afplay", args: ["-v", String(clamp(volume, 0, 2)), filePath] }];
-  }
-
-  // Linux and other Unix-like systems
   return [
     {
-      command: "ffplay",
+      command: "powershell.exe",
       args: [
-        "-nodisp",
-        "-autoexit",
-        "-loglevel",
-        "quiet",
-        "-volume",
-        String(Math.round(clamp(volume, 0, 2) * 100)),
-        filePath,
+        "-NoProfile",
+        "-NonInteractive",
+        "-WindowStyle",
+        "Hidden",
+        "-EncodedCommand",
+        encodedScript,
       ],
     },
-    { command: "paplay", args: [filePath] },
   ];
 }
 
 /**
  * Play an audio file in the background (non-blocking).
  *
- * On Windows, a hidden PowerShell process plays the file via the built-in
- * Windows Media Player COM object and removes the temp file when playback
- * finishes. On macOS, afplay is used. On Linux, ffplay/paplay are tried.
+ * A hidden PowerShell process plays the file via the built-in WPF
+ * `MediaPlayer` (falling back to the legacy Windows Media Player COM object)
+ * and removes the temp file when playback finishes.
  */
 export function playAudio(filePath: string, volume: number): void {
-  const candidates = buildPlaybackCandidates(filePath, volume);
-
   const cleanup = (): void => {
     try {
       unlinkSync(filePath);
@@ -221,6 +218,15 @@ export function playAudio(filePath: string, volume: number): void {
       // Ignore cleanup errors (the player may have already removed the file)
     }
   };
+
+  let candidates: Array<{ command: string; args: string[] }>;
+  try {
+    candidates = buildPlaybackCandidates(filePath, volume);
+  } catch (error) {
+    // Unsupported platform - clean up the temp file and surface the error
+    cleanup();
+    throw error;
+  }
 
   const attempt = (index: number): void => {
     if (index >= candidates.length) {
@@ -235,10 +241,10 @@ export function playAudio(filePath: string, volume: number): void {
     try {
       // On Windows, a plain spawn + unref() is already non-blocking and the
       // hidden window option prevents any console flash. `detached` is NOT
-      // used there: bun's detached spawn on Windows exits the child
-      // immediately without ever running the command.
+      // used: bun's detached spawn on Windows exits the child immediately
+      // without ever running the command.
       child = spawn(command, args, {
-        detached: process.platform !== "win32",
+        detached: false,
         stdio: "ignore",
         windowsHide: true,
       });
@@ -287,6 +293,9 @@ const speakTool = tool({
 
 Uses the expressive v3 model which supports inline audio tags for emotional control, 
 delivery direction, non-verbal reactions, accents, and sound effects.
+
+Windows-only: audio plays through a hidden PowerShell process using the built-in
+WPF MediaPlayer (falls back to the legacy Windows Media Player COM object).
 
 ${AUDIO_TAG_EXAMPLES}
 
@@ -350,6 +359,9 @@ USAGE GUIDANCE:
       speed = 1.0,
       volume = 1.0,
     } = args;
+
+    // Fail fast on non-Windows hosts before spending an API call
+    assertWindows();
 
     // Load API key from secrets file
     const apiKey = loadApiKey();
