@@ -7,7 +7,7 @@ import { spawn } from "child_process";
 /**
  * Voice ID for ElevenLabs TTS
  */
-const VOICE_ID = "YOq2y2Up4RgXP2HyXjE5";
+const VOICE_ID = "pNInz6obpgDQGcFmaJgB";
 
 /**
  * ElevenLabs v3 model ID - most expressive with audio tag support

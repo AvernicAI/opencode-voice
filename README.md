@@ -146,7 +146,7 @@ Examples:
 
 ### Voice ID
 
-The default voice ID is `YOq2y2Up4RgXP2HyXjE5`. To use a different voice, edit `src/plugin.ts`:
+The default voice ID is `pNInz6obpgDQGcFmaJgB` (Adam — free tier). To use a different voice, edit `src/plugin.ts`:
 
 ```typescript
 const VOICE_ID = "your-voice-id-here";
